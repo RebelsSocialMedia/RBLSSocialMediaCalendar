@@ -18,7 +18,7 @@
     --muted:#8a8aa3;
     --neon:#00ffc8;
     --neon-2:#ff2e88;
-    --accent:#7b5cff;
+    --accent:#ff0f26;
     --warn:#ffb800;
     --today:#00ffc8;
     --radius:14px;
@@ -28,7 +28,7 @@
   body{
     font-family:'Rajdhani',sans-serif;
     background:
-      radial-gradient(900px 600px at 12% -10%, rgba(123,92,255,.16), transparent 60%),
+      radial-gradient(900px 600px at 12% -10%, rgba(255,15,38,.16), transparent 60%),
       radial-gradient(800px 500px at 100% 0%, rgba(0,255,200,.10), transparent 55%),
       var(--bg);
     color:var(--txt);
@@ -124,7 +124,7 @@
   .overlay.show{display:flex}
   .modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;width:100%;max-width:480px;box-shadow:var(--shadow);overflow:hidden;animation:pop .2s ease}
   @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
-  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(123,92,255,.12),transparent)}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(255,15,38,.12),transparent)}
   .modal-head h2{font-family:'Chakra Petch';font-size:18px;text-transform:uppercase;letter-spacing:1px}
   .close-x{background:none;color:var(--muted);font-size:24px;width:32px;height:32px}
   .close-x:hover{color:var(--neon-2)}
@@ -237,6 +237,10 @@
         <div class="pf-grid" id="pfGrid"></div>
       </div>
       <div>
+        <label>Tipo de contenido</label>
+        <div class="pf-grid" id="typeGrid"></div>
+      </div>
+      <div>
         <label>Personas asignadas</label>
         <div class="pf-grid" id="teamGrid"></div>
       </div>
@@ -278,6 +282,14 @@ const PLATFORMS = {
   discord:{name:"Discord",color:"#5865f2"}
 };
 const STATUS_COLOR = {idea:"#ffb800",programado:"#7b5cff",publicado:"#00ffc8"};
+const CONTENT_TYPES = {
+  vertical:{emoji:"📱",name:"Vídeo vertical"},
+  horizontal:{emoji:"🎥",name:"Vídeo horizontal"},
+  creatividad:{emoji:"🎨",name:"Creatividad"},
+  tweet:{emoji:"✍️",name:"Tweet"},
+  oficial:{emoji:"💼",name:"Comunicación oficial"},
+  fotos:{emoji:"📷",name:"Fotos"}
+};
 const TEAM = {
   Laura:{ini:"LA",color:"#ff2e88"},
   Doomsy:{ini:"DO",color:"#00ffc8"},
@@ -377,7 +389,7 @@ function render(){
       el.className="post";
       el.style.borderLeftColor=pf?pf.color:"var(--accent)";
       el.dataset.id=p.id;
-      el.innerHTML=`<div class="ptitle">${esc(p.title)}</div>
+      el.innerHTML=`<div class="ptitle">${p.ctype&&CONTENT_TYPES[p.ctype]?CONTENT_TYPES[p.ctype].emoji+" ":""}${esc(p.title)}</div>
         <div class="pmeta">
           ${p.time?`<span class="ptime">${p.time}</span>`:""}
           <span class="badge" style="background:${STATUS_COLOR[p.status]||'#7b5cff'}">${p.status||"idea"}</span>
@@ -414,6 +426,17 @@ function buildPlatformOptions(){
     });
     t.appendChild(lab);
   });
+  const ty=document.getElementById("typeGrid"); ty.innerHTML="";
+  Object.entries(CONTENT_TYPES).forEach(([k,info])=>{
+    const lab=document.createElement("label");
+    lab.className="pf-opt"; lab.dataset.type=k;
+    lab.innerHTML=`<input type="radio" name="ctype" value="${k}"><span style="font-size:15px">${info.emoji}</span>${info.name}`;
+    lab.querySelector("input").addEventListener("change",()=>{
+      document.querySelectorAll("#typeGrid .pf-opt").forEach(x=>x.classList.remove("sel"));
+      lab.classList.add("sel");
+    });
+    ty.appendChild(lab);
+  });
 }
 
 function openModal(post,presetDate){
@@ -432,6 +455,11 @@ function openModal(post,presetDate){
   });
   document.querySelectorAll("#teamGrid .pf-opt").forEach(l=>{
     const on = post && post.people && post.people.includes(l.dataset.person);
+    l.classList.toggle("sel",!!on);
+    l.querySelector("input").checked=!!on;
+  });
+  document.querySelectorAll("#typeGrid .pf-opt").forEach(l=>{
+    const on = post && post.ctype===l.dataset.type;
     l.classList.toggle("sel",!!on);
     l.querySelector("input").checked=!!on;
   });
@@ -461,12 +489,15 @@ function attachEvents(){
     if(!title){alert("Pon un título al contenido");return;}
     const platforms=[...document.querySelectorAll("#pfGrid input:checked")].map(i=>i.value);
     const people=[...document.querySelectorAll("#teamGrid input:checked")].map(i=>i.value);
+    const typeEl=document.querySelector("#typeGrid input:checked");
+    const ctype=typeEl?typeEl.value:"";
     const p={
       title,
       date:document.getElementById("fDate").value,
       time:document.getElementById("fTime").value,
       platforms,
       people,
+      ctype,
       status:document.getElementById("fStatus").value,
       notes:document.getElementById("fNotes").value.trim()
     };
