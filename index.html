@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBLS Gaming · Calendario de Contenido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0a0a0f;
+    --panel:#13131d;
+    --panel-2:#1b1b2a;
+    --line:#2a2a3d;
+    --txt:#e8e8f0;
+    --muted:#8a8aa3;
+    --neon:#00ffc8;
+    --neon-2:#ff2e88;
+    --accent:#7b5cff;
+    --warn:#ffb800;
+    --today:#00ffc8;
+    --radius:14px;
+    --shadow:0 8px 40px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Rajdhani',sans-serif;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(123,92,255,.16), transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, rgba(0,255,200,.10), transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    min-height:100vh;
+    padding:24px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1280px;margin:0 auto}
+
+  /* HEADER */
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:20px;flex-wrap:wrap;margin-bottom:26px;
+    border-bottom:1px solid var(--line);padding-bottom:20px;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:52px;height:52px;border-radius:12px;
+    background:linear-gradient(135deg,var(--neon),var(--accent));
+    display:grid;place-items:center;font-family:'Chakra Petch';font-weight:700;
+    font-size:22px;color:#0a0a0f;letter-spacing:-1px;
+    box-shadow:0 0 24px rgba(0,255,200,.35);
+  }
+  .brand h1{
+    font-family:'Chakra Petch';font-weight:700;font-size:22px;letter-spacing:1px;
+    text-transform:uppercase;line-height:1;
+  }
+  .brand p{color:var(--muted);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-top:4px}
+
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .month-nav{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
+  .month-label{font-family:'Chakra Petch';font-weight:600;font-size:16px;min-width:170px;text-align:center;text-transform:uppercase;letter-spacing:1px}
+  button{
+    font-family:'Rajdhani',sans-serif;font-weight:600;cursor:pointer;border:none;
+    border-radius:10px;transition:.18s;font-size:14px;
+  }
+  .nav-btn{background:var(--panel-2);color:var(--txt);width:38px;height:38px;font-size:18px;border:1px solid var(--line)}
+  .nav-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn{padding:10px 16px;background:var(--panel-2);color:var(--txt);border:1px solid var(--line);text-transform:uppercase;letter-spacing:.5px;font-size:13px}
+  .btn:hover{border-color:var(--neon);color:var(--neon)}
+  .btn-primary{background:linear-gradient(135deg,var(--neon),var(--accent));color:#0a0a0f;border:none}
+  .btn-primary:hover{filter:brightness(1.1);color:#0a0a0f}
+  .btn-today{background:transparent;border:1px solid var(--neon);color:var(--neon)}
+
+  /* STATUS BAR */
+  .status{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);
+    margin-bottom:18px;padding:8px 14px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;letter-spacing:.5px;
+  }
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:var(--neon);box-shadow:0 0 10px var(--neon)}
+  .dot.off{background:var(--neon-2);box-shadow:0 0 10px var(--neon-2)}
+
+  /* LEGEND */
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .legend span{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .pf-dot{width:10px;height:10px;border-radius:3px}
+
+  /* CALENDAR */
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+  .cal-head div{text-align:center;font-family:'Chakra Petch';font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;padding:6px}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .cell{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    min-height:128px;padding:8px;display:flex;flex-direction:column;gap:5px;
+    transition:.16s;position:relative;overflow:hidden;
+  }
+  .cell:hover{border-color:var(--accent);background:var(--panel-2)}
+  .cell.empty{background:transparent;border-color:transparent}
+  .cell.today{border-color:var(--today);box-shadow:0 0 0 1px var(--today) inset, 0 0 22px rgba(0,255,200,.18)}
+  .cell .num{font-family:'Chakra Petch';font-weight:600;font-size:15px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .cell.today .num{color:var(--today)}
+  .add-day{opacity:0;background:var(--panel-2);border:1px solid var(--line);color:var(--neon);width:22px;height:22px;border-radius:6px;font-size:15px;line-height:1;transition:.16s}
+  .cell:hover .add-day{opacity:1}
+  .add-day:hover{background:var(--neon);color:#0a0a0f}
+
+  .post{
+    background:var(--panel-2);border-left:3px solid var(--accent);border-radius:7px;
+    padding:6px 8px;cursor:pointer;transition:.14s;
+  }
+  .post:hover{background:#23233a;transform:translateX(2px)}
+  .post .ptitle{font-size:13px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .post .pmeta{display:flex;align-items:center;gap:5px;margin-top:3px}
+  .post .ptime{font-size:11px;color:var(--muted)}
+  .badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0f}
+  .people{display:flex;align-items:center;gap:-4px;margin-top:4px}
+  .avatar{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-family:'Chakra Petch';font-weight:700;font-size:8px;color:#0a0a0f;border:1.5px solid var(--panel-2);margin-right:-5px}
+  .avatar:last-child{margin-right:0}
+
+  /* MODAL */
+  .overlay{position:fixed;inset:0;background:rgba(5,5,10,.78);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .overlay.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;width:100%;max-width:480px;box-shadow:var(--shadow);overflow:hidden;animation:pop .2s ease}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(123,92,255,.12),transparent)}
+  .modal-head h2{font-family:'Chakra Petch';font-size:18px;text-transform:uppercase;letter-spacing:1px}
+  .close-x{background:none;color:var(--muted);font-size:24px;width:32px;height:32px}
+  .close-x:hover{color:var(--neon-2)}
+  .modal-body{padding:22px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto}
+  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;font-weight:600}
+  input,textarea,select{
+    width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;color:var(--txt);font-family:'Rajdhani';font-size:15px;font-weight:500;transition:.14s;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,255,200,.12)}
+  textarea{resize:vertical;min-height:70px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .pf-opt{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;cursor:pointer;font-size:13px;font-weight:600;transition:.14s}
+  .pf-opt:hover{border-color:var(--accent)}
+  .pf-opt.sel{border-color:var(--neon);background:rgba(0,255,200,.08)}
+  .pf-opt input{display:none}
+  .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+  .btn-del{background:transparent;border:1px solid var(--neon-2);color:var(--neon-2);padding:10px 16px}
+  .btn-del:hover{background:var(--neon-2);color:#fff}
+
+  /* SETUP NOTICE */
+  .setup{background:var(--panel);border:1px solid var(--warn);border-radius:14px;padding:18px 22px;margin-bottom:20px;display:none}
+  .setup.show{display:block}
+  .setup h3{font-family:'Chakra Petch';color:var(--warn);font-size:15px;text-transform:uppercase;margin-bottom:8px;letter-spacing:1px}
+  .setup p{color:var(--muted);font-size:14px;line-height:1.5}
+  .setup code{background:var(--bg);padding:2px 7px;border-radius:5px;color:var(--neon);font-family:monospace}
+
+  .empty-state{text-align:center;color:var(--muted);padding:40px;font-size:14px}
+  @media(max-width:760px){
+    body{padding:14px}
+    .cell{min-height:90px}
+    .cal-head div{font-size:10px}
+    .post .ptitle{font-size:11px}
+    .row,.pf-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">R</div>
+      <div>
+        <h1>RBLS Gaming</h1>
+        <p>Calendario de Contenido</p>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn btn-today" id="todayBtn">Hoy</button>
+      <div class="month-nav">
+        <button class="nav-btn" id="prevBtn">‹</button>
+        <span class="month-label" id="monthLabel">—</span>
+        <button class="nav-btn" id="nextBtn">›</button>
+      </div>
+      <button class="btn btn-primary" id="newBtn">+ Nuevo Post</button>
+    </div>
+  </header>
+
+  <div class="setup" id="setupNotice">
+    <h3>⚙ Falta configurar Supabase</h3>
+    <p>Abre <code>index.html</code> y rellena <code>SUPABASE_URL</code> y <code>SUPABASE_KEY</code> al final del archivo. Mientras tanto, el calendario funciona en modo local (los cambios solo se ven en este navegador). Sigue la guía que te pasé para conectarlo.</p>
+  </div>
+
+  <div class="status">
+    <span class="dot" id="connDot"></span>
+    <span id="connText">Conectando…</span>
+  </div>
+
+  <div class="legend">
+    <span><i class="pf-dot" style="background:#9146ff"></i>Twitch</span>
+    <span><i class="pf-dot" style="background:#ff0000"></i>YouTube</span>
+    <span><i class="pf-dot" style="background:#e1306c"></i>Instagram</span>
+    <span><i class="pf-dot" style="background:#00f2ea"></i>TikTok</span>
+    <span><i class="pf-dot" style="background:#1d9bf0"></i>X</span>
+    <span><i class="pf-dot" style="background:#5865f2"></i>Discord</span>
+  </div>
+
+  <div class="cal-head">
+    <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">Nuevo Post</h2>
+      <button class="close-x" id="closeBtn">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="postId">
+      <div>
+        <label>Título del contenido</label>
+        <input type="text" id="fTitle" placeholder="Ej: Stream Valorant con sorteo">
+      </div>
+      <div class="row">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="fDate">
+        </div>
+        <div>
+          <label>Hora</label>
+          <input type="time" id="fTime">
+        </div>
+      </div>
+      <div>
+        <label>Plataformas</label>
+        <div class="pf-grid" id="pfGrid"></div>
+      </div>
+      <div>
+        <label>Personas asignadas</label>
+        <div class="pf-grid" id="teamGrid"></div>
+      </div>
+      <div>
+        <label>Estado</label>
+        <select id="fStatus">
+          <option value="idea">💡 Idea</option>
+          <option value="programado">📅 Programado</option>
+          <option value="publicado">✅ Publicado</option>
+        </select>
+      </div>
+      <div>
+        <label>Notas</label>
+        <textarea id="fNotes" placeholder="Guion, copy, enlaces, responsable…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-del" id="delBtn" style="visibility:hidden">Eliminar</button>
+      <button class="btn btn-primary" id="saveBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN SUPABASE
+   Rellena estos dos valores (ver guía paso a paso).
+   ============================================================ */
+const SUPABASE_URL = "https://xiuaizzopwlzqaxcbruy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ZFLqaJrX-Z7bt7NzBDwscg_yG3w4sBH";
+/* ============================================================ */
+
+const PLATFORMS = {
+  twitch:{name:"Twitch",color:"#9146ff"},
+  youtube:{name:"YouTube",color:"#ff0000"},
+  instagram:{name:"Instagram",color:"#e1306c"},
+  tiktok:{name:"TikTok",color:"#00f2ea"},
+  x:{name:"X",color:"#1d9bf0"},
+  discord:{name:"Discord",color:"#5865f2"}
+};
+const STATUS_COLOR = {idea:"#ffb800",programado:"#7b5cff",publicado:"#00ffc8"};
+const TEAM = {
+  Laura:{ini:"LA",color:"#ff2e88"},
+  Doomsy:{ini:"DO",color:"#00ffc8"},
+  Isra:{ini:"IS",color:"#7b5cff"},
+  Carlos:{ini:"CA",color:"#ffb800"},
+  Javi:{ini:"JA",color:"#1d9bf0"},
+  "Fátima":{ini:"FA",color:"#00f2ea"}
+};
+
+let supa = null, useCloud = false, posts = [], current = new Date(), editingId = null;
+
+/* ---------- INIT ---------- */
+function init(){
+  const configured = SUPABASE_URL.startsWith("http") && SUPABASE_KEY.length > 20;
+  if(configured && window.supabase){
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    useCloud = true;
+    setStatus(true,"Conectado a Supabase · datos compartidos");
+  }else{
+    useCloud = false;
+    document.getElementById("setupNotice").classList.add("show");
+    setStatus(false,"Modo local · solo en este navegador");
+  }
+  buildPlatformOptions();
+  loadPosts();
+  attachEvents();
+}
+
+function setStatus(on,text){
+  const d=document.getElementById("connDot"), t=document.getElementById("connText");
+  d.className = "dot " + (on?"on":"off");
+  t.textContent = text;
+}
+
+/* ---------- DATA ---------- */
+async function loadPosts(){
+  if(useCloud){
+    const {data,error} = await supa.from("posts").select("*").order("date",{ascending:true});
+    if(error){ console.error(error); setStatus(false,"Error de conexión · revisa la tabla"); posts=[]; }
+    else posts = data || [];
+  }else{
+    posts = JSON.parse(localStorage.getItem("rbls_posts")||"[]");
+  }
+  render();
+}
+
+function saveLocal(){ localStorage.setItem("rbls_posts", JSON.stringify(posts)); }
+
+async function savePost(p){
+  if(useCloud){
+    if(p.id){
+      const {error} = await supa.from("posts").update(p).eq("id",p.id);
+      if(error) alert("Error al guardar: "+error.message);
+    }else{
+      delete p.id;
+      const {error} = await supa.from("posts").insert(p);
+      if(error) alert("Error al guardar: "+error.message);
+    }
+    await loadPosts();
+  }else{
+    if(p.id){ const i=posts.findIndex(x=>x.id===p.id); posts[i]=p; }
+    else{ p.id = Date.now(); posts.push(p); }
+    saveLocal(); render();
+  }
+}
+
+async function deletePost(id){
+  if(useCloud){
+    const {error} = await supa.from("posts").delete().eq("id",id);
+    if(error) alert("Error al eliminar: "+error.message);
+    await loadPosts();
+  }else{
+    posts = posts.filter(x=>x.id!==id); saveLocal(); render();
+  }
+}
+
+/* ---------- RENDER ---------- */
+const MONTHS=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+function render(){
+  const y=current.getFullYear(), m=current.getMonth();
+  document.getElementById("monthLabel").textContent = MONTHS[m]+" "+y;
+  const grid=document.getElementById("calGrid"); grid.innerHTML="";
+  let first=new Date(y,m,1).getDay(); first=(first===0)?6:first-1; // lunes primero
+  const days=new Date(y,m+1,0).getDate();
+  const todayStr=fmtDate(new Date());
+
+  for(let i=0;i<first;i++){const e=document.createElement("div");e.className="cell empty";grid.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const cell=document.createElement("div");
+    cell.className="cell"+(dateStr===todayStr?" today":"");
+    const dayPosts=posts.filter(p=>p.date===dateStr).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+    cell.innerHTML=`<div class="num"><span>${d}</span><button class="add-day" data-date="${dateStr}">+</button></div>`;
+    dayPosts.forEach(p=>{
+      const pf=(p.platforms&&p.platforms[0])?PLATFORMS[p.platforms[0]]:null;
+      const el=document.createElement("div");
+      el.className="post";
+      el.style.borderLeftColor=pf?pf.color:"var(--accent)";
+      el.dataset.id=p.id;
+      el.innerHTML=`<div class="ptitle">${esc(p.title)}</div>
+        <div class="pmeta">
+          ${p.time?`<span class="ptime">${p.time}</span>`:""}
+          <span class="badge" style="background:${STATUS_COLOR[p.status]||'#7b5cff'}">${p.status||"idea"}</span>
+        </div>
+        ${(p.people&&p.people.length)?`<div class="people">${p.people.map(n=>TEAM[n]?`<span class="avatar" style="background:${TEAM[n].color}" title="${n}">${TEAM[n].ini}</span>`:"").join("")}</div>`:""}`;
+      cell.appendChild(el);
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function fmtDate(dt){return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------- MODAL ---------- */
+function buildPlatformOptions(){
+  const g=document.getElementById("pfGrid"); g.innerHTML="";
+  Object.entries(PLATFORMS).forEach(([k,v])=>{
+    const lab=document.createElement("label");
+    lab.className="pf-opt"; lab.dataset.pf=k;
+    lab.innerHTML=`<input type="checkbox" value="${k}"><i class="pf-dot" style="background:${v.color}"></i>${v.name}`;
+    lab.querySelector("input").addEventListener("change",e=>{
+      lab.classList.toggle("sel",e.target.checked);
+    });
+    g.appendChild(lab);
+  });
+  const t=document.getElementById("teamGrid"); t.innerHTML="";
+  Object.entries(TEAM).forEach(([name,info])=>{
+    const lab=document.createElement("label");
+    lab.className="pf-opt"; lab.dataset.person=name;
+    lab.innerHTML=`<input type="checkbox" value="${name}"><i class="pf-dot" style="border-radius:50%;background:${info.color}"></i>${name}`;
+    lab.querySelector("input").addEventListener("change",e=>{
+      lab.classList.toggle("sel",e.target.checked);
+    });
+    t.appendChild(lab);
+  });
+}
+
+function openModal(post,presetDate){
+  editingId = post?post.id:null;
+  document.getElementById("modalTitle").textContent = post?"Editar Post":"Nuevo Post";
+  document.getElementById("postId").value = post?post.id:"";
+  document.getElementById("fTitle").value = post?post.title:"";
+  document.getElementById("fDate").value = post?post.date:(presetDate||fmtDate(new Date()));
+  document.getElementById("fTime").value = post?(post.time||""):"";
+  document.getElementById("fStatus").value = post?(post.status||"idea"):"idea";
+  document.getElementById("fNotes").value = post?(post.notes||""):"";
+  document.querySelectorAll("#pfGrid .pf-opt").forEach(l=>{
+    const on = post && post.platforms && post.platforms.includes(l.dataset.pf);
+    l.classList.toggle("sel",!!on);
+    l.querySelector("input").checked=!!on;
+  });
+  document.querySelectorAll("#teamGrid .pf-opt").forEach(l=>{
+    const on = post && post.people && post.people.includes(l.dataset.person);
+    l.classList.toggle("sel",!!on);
+    l.querySelector("input").checked=!!on;
+  });
+  document.getElementById("delBtn").style.visibility = post?"visible":"hidden";
+  document.getElementById("overlay").classList.add("show");
+}
+function closeModal(){document.getElementById("overlay").classList.remove("show");}
+
+/* ---------- EVENTS ---------- */
+function attachEvents(){
+  document.getElementById("prevBtn").onclick=()=>{current.setMonth(current.getMonth()-1);render();};
+  document.getElementById("nextBtn").onclick=()=>{current.setMonth(current.getMonth()+1);render();};
+  document.getElementById("todayBtn").onclick=()=>{current=new Date();render();};
+  document.getElementById("newBtn").onclick=()=>openModal(null);
+  document.getElementById("closeBtn").onclick=closeModal;
+  document.getElementById("overlay").onclick=e=>{if(e.target.id==="overlay")closeModal();};
+
+  document.getElementById("calGrid").addEventListener("click",e=>{
+    const add=e.target.closest(".add-day");
+    if(add){openModal(null,add.dataset.date);return;}
+    const post=e.target.closest(".post");
+    if(post){const p=posts.find(x=>String(x.id)===String(post.dataset.id));if(p)openModal(p);}
+  });
+
+  document.getElementById("saveBtn").onclick=async()=>{
+    const title=document.getElementById("fTitle").value.trim();
+    if(!title){alert("Pon un título al contenido");return;}
+    const platforms=[...document.querySelectorAll("#pfGrid input:checked")].map(i=>i.value);
+    const people=[...document.querySelectorAll("#teamGrid input:checked")].map(i=>i.value);
+    const p={
+      title,
+      date:document.getElementById("fDate").value,
+      time:document.getElementById("fTime").value,
+      platforms,
+      people,
+      status:document.getElementById("fStatus").value,
+      notes:document.getElementById("fNotes").value.trim()
+    };
+    if(editingId) p.id=editingId;
+    await savePost(p);
+    closeModal();
+  };
+
+  document.getElementById("delBtn").onclick=async()=>{
+    if(editingId && confirm("¿Eliminar este post?")){await deletePost(editingId);closeModal();}
+  };
+
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+}
+
+init();
+</script>
+</body>
+</html>
