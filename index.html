@@ -154,12 +154,51 @@
   .setup code{background:var(--bg);padding:2px 7px;border-radius:5px;color:var(--neon);font-family:monospace}
 
   .empty-state{text-align:center;color:var(--muted);padding:40px;font-size:14px}
+
+  /* PANELES INFERIORES */
+  .panels{margin-top:32px;display:grid;grid-template-columns:1fr;gap:18px}
+  .panel-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;overflow:hidden}
+  .panel-box h2{font-family:'Chakra Petch';font-size:15px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .panel-box .sub{color:var(--muted);font-size:12px;margin-bottom:16px;letter-spacing:.5px}
+  .panel-box h2 .wk{font-family:'Rajdhani';font-size:12px;color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0;margin-left:auto}
+
+  table.mins{width:100%;border-collapse:collapse}
+  table.mins th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+  table.mins td{padding:9px 8px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+  table.mins tr:last-child td{border-bottom:none}
+  .min-name{font-weight:600;display:flex;align-items:center;gap:8px}
+  .min-name i{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+  .min-goal{color:var(--muted);font-size:13px}
+  .min-count{font-family:'Chakra Petch';font-weight:600;font-size:14px;text-align:center;white-space:nowrap}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .pill.ok{background:rgba(0,255,200,.12);color:var(--neon)}
+  .pill.no{background:rgba(255,184,0,.12);color:var(--warn)}
+  .min-note{font-size:11px;color:var(--muted);margin-top:3px;font-weight:500;line-height:1.3}
+
+  .summary-grid{display:flex;flex-direction:column;gap:10px}
+  .sum-row{display:flex;align-items:center;gap:10px}
+  .sum-row .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:'Chakra Petch';font-weight:700;font-size:10px;color:#0a0a0f;flex-shrink:0}
+  .sum-row .nm{font-weight:600;font-size:14px;min-width:62px}
+  .bar{flex:1;height:8px;background:var(--bg);border-radius:6px;overflow:hidden}
+  .bar span{display:block;height:100%;border-radius:6px}
+  .sum-row .ct{font-family:'Chakra Petch';font-weight:600;font-size:13px;color:var(--muted);min-width:20px;text-align:right}
+  .sum-total{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .sum-total b{font-family:'Chakra Petch';font-size:28px;color:var(--neon)}
+  .sum-total span{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+
+  .today-list{display:flex;flex-direction:column;gap:8px}
+  .today-item{display:flex;align-items:center;gap:10px;background:var(--panel-2);border-radius:9px;padding:9px 11px;border-left:3px solid var(--accent)}
+  .today-item .ti-time{font-family:'Chakra Petch';font-size:12px;color:var(--muted);min-width:42px}
+  .today-item .ti-title{font-size:13px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .today-empty{color:var(--muted);font-size:13px;text-align:center;padding:18px}
+
   @media(max-width:760px){
     body{padding:14px}
     .cell{min-height:90px}
     .cal-head div{font-size:10px}
     .post .ptitle{font-size:11px}
     .row,.pf-grid{grid-template-columns:1fr}
+    .panels{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -207,6 +246,17 @@
     <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
   </div>
   <div class="cal-grid" id="calGrid"></div>
+
+  <div class="panels">
+    <div class="panel-box">
+      <h2>⚡ Mínimos Semanales</h2>
+      <div class="sub">Estándar de publicación del equipo</div>
+      <table class="mins">
+        <thead><tr><th>Canal</th><th>Objetivo</th></tr></thead>
+        <tbody id="minsBody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -299,6 +349,18 @@ const TEAM = {
   "Fátima":{ini:"FA",color:"#00f2ea"}
 };
 
+/* Mínimos: tabla fija de referencia (sin contadores) */
+const MINIMUMS = [
+  {label:"Instagram Feed", color:"#e1306c", goal:"2 por semana"},
+  {label:"Instagram Reels", color:"#e1306c", goal:"1 por semana"},
+  {label:"Instagram Stories", color:"#e1306c", goal:"1 por día"},
+  {label:"YouTube Shorts", color:"#ff0000", goal:"2 por semana",
+   note:"Podemos reciclar cualquier contenido, la clave es posicionar"},
+  {label:"TikTok", color:"#00f2ea", goal:"1 por semana"},
+  {label:"Twitter / X", color:"#1d9bf0", goal:"2 al día",
+   note:"Ojo a tendencias o virales en la comunidad esports España/Europa"}
+];
+
 let supa = null, useCloud = false, posts = [], current = new Date(), editingId = null;
 
 /* ---------- INIT ---------- */
@@ -343,11 +405,11 @@ async function savePost(p){
     if(p.id){
       const {id, created_at, ...fields} = p;
       const {error} = await supa.from("posts").update(fields).eq("id",id);
-      if(error) alert("Error al guardar: "+error.message);
+      if(error) alert("Error al guardar: "+(error.message||error.hint||JSON.stringify(error)));
     }else{
       delete p.id;
       const {error} = await supa.from("posts").insert(p);
-      if(error) alert("Error al guardar: "+error.message);
+      if(error) alert("Error al guardar: "+(error.message||error.hint||JSON.stringify(error)));
     }
     await loadPosts();
   }else{
@@ -400,6 +462,20 @@ function render(){
     });
     grid.appendChild(cell);
   }
+  renderPanels();
+}
+
+/* ---------- PANEL DE MÍNIMOS (fijo) ---------- */
+function renderPanels(){
+  const body=document.getElementById("minsBody"); body.innerHTML="";
+  MINIMUMS.forEach(min=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td><div class="min-name"><i style="background:${min.color}"></i>${min.label}</div>
+        ${min.note?`<div class="min-note">${min.note}</div>`:""}</td>
+      <td class="min-goal">${min.goal}</td>`;
+    body.appendChild(tr);
+  });
 }
 
 function fmtDate(dt){return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;}
