@@ -341,7 +341,8 @@ function saveLocal(){ localStorage.setItem("rbls_posts", JSON.stringify(posts));
 async function savePost(p){
   if(useCloud){
     if(p.id){
-      const {error} = await supa.from("posts").update(p).eq("id",p.id);
+      const {id, created_at, ...fields} = p;
+      const {error} = await supa.from("posts").update(fields).eq("id",id);
       if(error) alert("Error al guardar: "+error.message);
     }else{
       delete p.id;
