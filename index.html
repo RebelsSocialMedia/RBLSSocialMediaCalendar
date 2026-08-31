@@ -351,14 +351,15 @@ const TEAM = {
 
 /* Mínimos: tabla fija de referencia (sin contadores) */
 const MINIMUMS = [
-  {label:"Instagram Feed", color:"#e1306c", goal:"2 por semana"},
-  {label:"Instagram Reels", color:"#e1306c", goal:"1 por semana"},
-  {label:"Instagram Stories", color:"#e1306c", goal:"1 por día"},
+  {label:"Instagram Feed", color:"#e1306c", goal:"2 por semana",
+   note:"No valen Reels ni vídeo"},
+  {label:"Instagram Reels", color:"#e1306c", goal:"2 por semana"},
+  {label:"Instagram Stories", color:"#e1306c", goal:"2 por semana"},
   {label:"YouTube Shorts", color:"#ff0000", goal:"2 por semana",
    note:"Podemos reciclar cualquier contenido, la clave es posicionar"},
-  {label:"TikTok", color:"#00f2ea", goal:"1 por semana"},
-  {label:"Twitter / X", color:"#1d9bf0", goal:"2 al día",
-   note:"Ojo a tendencias o virales en la comunidad esports España/Europa"}
+  {label:"TikTok", color:"#00f2ea", goal:"2 por semana"},
+  {label:"Twitter / X", color:"#1d9bf0", goal:"4 al día",
+   note:"Sin contar coberturas de partidos. Ojo a tendencias o virales en la comunidad esports España/Europa"}
 ];
 
 let supa = null, useCloud = false, posts = [], current = new Date(), editingId = null;
