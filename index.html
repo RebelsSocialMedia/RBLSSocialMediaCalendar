@@ -94,13 +94,13 @@
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
   .cell{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    min-height:128px;padding:8px;display:flex;flex-direction:column;gap:5px;
-    transition:.16s;position:relative;overflow:hidden;
+    min-height:min(62vh,560px);padding:10px;display:flex;flex-direction:column;gap:6px;
+    transition:.16s;position:relative;overflow-y:auto;
   }
   .cell:hover{border-color:var(--accent);background:var(--panel-2)}
   .cell.empty{background:transparent;border-color:transparent}
   .cell.today{border-color:var(--today);box-shadow:0 0 0 1px var(--today) inset, 0 0 22px rgba(0,255,200,.18)}
-  .cell .num{font-family:'Chakra Petch';font-weight:600;font-size:15px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .cell .num{font-family:'Chakra Petch';font-weight:600;font-size:14px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:inherit;padding-bottom:4px;border-bottom:1px solid var(--line)}
   .cell.today .num{color:var(--today)}
   .add-day{opacity:0;background:var(--panel-2);border:1px solid var(--line);color:var(--neon);width:22px;height:22px;border-radius:6px;font-size:15px;line-height:1;transition:.16s}
   .cell:hover .add-day{opacity:1}
@@ -194,9 +194,9 @@
 
   @media(max-width:760px){
     body{padding:14px}
-    .cell{min-height:90px}
-    .cal-head div{font-size:10px}
-    .post .ptitle{font-size:11px}
+    .cal-grid{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+    .cell{min-height:min(62vh,560px)}
+    .post .ptitle{font-size:12px}
     .row,.pf-grid{grid-template-columns:1fr}
     .panels{grid-template-columns:1fr}
   }
@@ -242,9 +242,6 @@
     <span><i class="pf-dot" style="background:#5865f2"></i>Discord</span>
   </div>
 
-  <div class="cal-head">
-    <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
-  </div>
   <div class="cal-grid" id="calGrid"></div>
 
   <div class="panels">
@@ -434,21 +431,30 @@ async function deletePost(id){
 
 /* ---------- RENDER ---------- */
 const MONTHS=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DOW=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+function mondayOf(ref){
+  const d=new Date(ref); let wd=d.getDay(); wd=(wd===0)?6:wd-1;
+  d.setDate(d.getDate()-wd); d.setHours(0,0,0,0); return d;
+}
 function render(){
-  const y=current.getFullYear(), m=current.getMonth();
-  document.getElementById("monthLabel").textContent = MONTHS[m]+" "+y;
+  const mon=mondayOf(current);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  // etiqueta de la semana
+  const lbl = mon.getMonth()===sun.getMonth()
+    ? `${mon.getDate()} – ${sun.getDate()} ${MONTHS[sun.getMonth()]} ${sun.getFullYear()}`
+    : `${mon.getDate()} ${MONTHS[mon.getMonth()].slice(0,3)} – ${sun.getDate()} ${MONTHS[sun.getMonth()].slice(0,3)} ${sun.getFullYear()}`;
+  document.getElementById("monthLabel").textContent = lbl;
+
   const grid=document.getElementById("calGrid"); grid.innerHTML="";
-  let first=new Date(y,m,1).getDay(); first=(first===0)?6:first-1; // lunes primero
-  const days=new Date(y,m+1,0).getDate();
   const todayStr=fmtDate(new Date());
 
-  for(let i=0;i<first;i++){const e=document.createElement("div");e.className="cell empty";grid.appendChild(e);}
-  for(let d=1;d<=days;d++){
-    const dateStr=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  for(let i=0;i<7;i++){
+    const day=new Date(mon); day.setDate(mon.getDate()+i);
+    const dateStr=fmtDate(day);
     const cell=document.createElement("div");
     cell.className="cell"+(dateStr===todayStr?" today":"");
     const dayPosts=posts.filter(p=>p.date===dateStr).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
-    cell.innerHTML=`<div class="num"><span>${d}</span><button class="add-day" data-date="${dateStr}">+</button></div>`;
+    cell.innerHTML=`<div class="num"><span>${DOW[i]} ${day.getDate()}</span><button class="add-day" data-date="${dateStr}">+</button></div>`;
     dayPosts.forEach(p=>{
       const pf=(p.platforms&&p.platforms[0])?PLATFORMS[p.platforms[0]]:null;
       const el=document.createElement("div");
@@ -552,8 +558,8 @@ function closeModal(){document.getElementById("overlay").classList.remove("show"
 
 /* ---------- EVENTS ---------- */
 function attachEvents(){
-  document.getElementById("prevBtn").onclick=()=>{current.setMonth(current.getMonth()-1);render();};
-  document.getElementById("nextBtn").onclick=()=>{current.setMonth(current.getMonth()+1);render();};
+  document.getElementById("prevBtn").onclick=()=>{current.setDate(current.getDate()-7);render();};
+  document.getElementById("nextBtn").onclick=()=>{current.setDate(current.getDate()+7);render();};
   document.getElementById("todayBtn").onclick=()=>{current=new Date();render();};
   document.getElementById("newBtn").onclick=()=>openModal(null);
   document.getElementById("closeBtn").onclick=closeModal;
