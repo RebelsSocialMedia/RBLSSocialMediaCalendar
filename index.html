@@ -199,6 +199,7 @@
   .ideas-panel{position:fixed;top:0;right:0;height:100%;width:340px;max-width:88vw;background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 40px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .22s ease;z-index:61;display:flex;flex-direction:column}
   .ideas-panel.show{transform:translateX(0)}
   .ideas-panel.drop-active{border-left:2px solid var(--neon);box-shadow:-10px 0 40px rgba(0,255,200,.25)}
+  .ideas-panel.dragging-away{transform:translateX(100%);transition:transform .12s ease}
   .ideas-head{padding:18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(255,15,38,.1),transparent)}
   .ideas-head h2{font-family:'Chakra Petch';font-size:16px;text-transform:uppercase;letter-spacing:1px}
   .ideas-sub{color:var(--muted);font-size:12px;padding:12px 18px 6px;line-height:1.4}
@@ -666,40 +667,56 @@ function attachEvents(){
   });
 
   // ---- DRAG & DROP ----
-  let dragId=null;
+  let dragId=null, dragFromIdeas=false;
   document.addEventListener("dragstart",e=>{
     const post=e.target.closest(".post");
-    if(post){dragId=post.dataset.id;post.classList.add("dragging");e.dataTransfer.effectAllowed="move";}
+    if(!post)return;
+    dragId=post.dataset.id;
+    dragFromIdeas = !!e.target.closest("#ideasList");
+    post.classList.add("dragging");
+    e.dataTransfer.effectAllowed="move";
+    try{e.dataTransfer.setData("text/plain",dragId);}catch(_){}
+    // Si arrastro una idea, aparto el panel para dejar ver el calendario
+    if(dragFromIdeas){
+      ideasOv.classList.remove("show");
+      setTimeout(()=>{ if(dragId) panel.classList.add("dragging-away"); },30);
+    }
   });
   document.addEventListener("dragend",e=>{
     const post=e.target.closest(".post"); if(post)post.classList.remove("dragging");
     document.querySelectorAll(".drop-active").forEach(x=>x.classList.remove("drop-active"));
+    panel.classList.remove("dragging-away");
+    dragId=null; dragFromIdeas=false;
   });
   // Soltar en un día del calendario
-  document.getElementById("calGrid").addEventListener("dragover",e=>{
-    e.preventDefault();
+  const grid=document.getElementById("calGrid");
+  grid.addEventListener("dragover",e=>{
+    e.preventDefault(); e.dataTransfer.dropEffect="move";
     const cell=e.target.closest(".cell");
     document.querySelectorAll(".cell.drop-active").forEach(x=>x.classList.remove("drop-active"));
     if(cell)cell.classList.add("drop-active");
   });
-  document.getElementById("calGrid").addEventListener("drop",async e=>{
+  grid.addEventListener("drop",async e=>{
     e.preventDefault();
     const cell=e.target.closest(".cell"); if(!cell||!dragId)return;
     const btn=cell.querySelector(".add-day"); if(!btn)return;
     const newDate=btn.dataset.date;
-    const p=posts.find(x=>String(x.id)===String(dragId));
+    const id=dragId, cameFromIdeas=dragFromIdeas;
+    const p=posts.find(x=>String(x.id)===String(id));
+    document.querySelectorAll(".cell.drop-active").forEach(x=>x.classList.remove("drop-active"));
+    panel.classList.remove("dragging-away");
     if(p && p.date!==newDate){ p.date=newDate; await savePost({...p}); }
-    dragId=null;
+    if(cameFromIdeas){ panel.classList.add("show"); ideasOv.classList.add("show"); }
   });
-  // Soltar en el panel de ideas -> quitar fecha
-  panel.addEventListener("dragover",e=>{e.preventDefault();panel.classList.add("drop-active");});
+  // Soltar en el panel de ideas -> quitar fecha (aparcar)
+  panel.addEventListener("dragover",e=>{e.preventDefault();e.dataTransfer.dropEffect="move";panel.classList.add("drop-active");});
   panel.addEventListener("dragleave",()=>panel.classList.remove("drop-active"));
   panel.addEventListener("drop",async e=>{
     e.preventDefault();panel.classList.remove("drop-active");
     if(!dragId)return;
-    const p=posts.find(x=>String(x.id)===String(dragId));
+    const id=dragId;
+    const p=posts.find(x=>String(x.id)===String(id));
     if(p && p.date){ p.date=""; await savePost({...p}); }
-    dragId=null;
   });
 
   document.getElementById("saveBtn").onclick=async()=>{
