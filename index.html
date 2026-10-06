@@ -345,7 +345,10 @@
     </div>
     <div class="modal-foot">
       <button class="btn-del" id="delBtn" style="visibility:hidden">Eliminar</button>
-      <button class="btn btn-primary" id="saveBtn">Guardar</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn" id="dupBtn" style="display:none">⧉ Duplicar</button>
+        <button class="btn btn-primary" id="saveBtn">Guardar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -631,6 +634,7 @@ function openModal(post,presetDate){
     l.querySelector("input").checked=!!on;
   });
   document.getElementById("delBtn").style.visibility = post?"visible":"hidden";
+  document.getElementById("dupBtn").style.display = post?"inline-block":"none";
   document.getElementById("overlay").classList.add("show");
 }
 function closeModal(){document.getElementById("overlay").classList.remove("show");}
@@ -749,6 +753,20 @@ function attachEvents(){
 
   document.getElementById("delBtn").onclick=async()=>{
     if(editingId && confirm("¿Eliminar este post?")){await deletePost(editingId);closeModal();}
+  };
+
+  document.getElementById("dupBtn").onclick=()=>{
+    // Convierte el formulario actual en una copia nueva (sin id), lista para ponerle fecha
+    editingId=null;
+    document.getElementById("postId").value="";
+    document.getElementById("modalTitle").textContent="Duplicar · Nuevo Post";
+    document.getElementById("delBtn").style.visibility="hidden";
+    document.getElementById("dupBtn").style.display="none";
+    const title=document.getElementById("fTitle");
+    if(title.value && !/\(copia\)$/.test(title.value)) title.value=title.value+" (copia)";
+    const fd=document.getElementById("fDate");
+    fd.value=""; fd.focus();
+    fd.scrollIntoView({behavior:"smooth",block:"center"});
   };
 
   document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
