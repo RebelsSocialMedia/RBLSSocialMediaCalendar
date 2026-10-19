@@ -338,6 +338,10 @@
           <input type="url" id="fLink" placeholder="https://drive.google.com/…">
         </div>
       </div>
+      <div id="thumbRow" style="display:none">
+        <label>🖼️ Entrega de miniatura (diseño de portada)</label>
+        <input type="url" id="fThumb" placeholder="Link a la miniatura / portada…">
+      </div>
       <div>
         <label>Notas</label>
         <textarea id="fNotes" placeholder="Guion, copy, enlaces, responsable…"></textarea>
@@ -513,9 +517,10 @@ function render(){
           ${p.time?`<span class="ptime">${p.time}</span>`:""}
           <span class="badge" style="background:${STATUS_COLOR[p.status]||'#7b5cff'}">${p.status||"idea"}</span>
         </div>
-        ${(ddTxt||meta.link)?`<div class="pmeta" style="margin-top:2px">
+        ${(ddTxt||meta.link||meta.thumb)?`<div class="pmeta" style="margin-top:2px">
           ${ddTxt?`<span class="ptime" title="Deadline de entrega">⏰ ${ddTxt}</span>`:""}
           ${meta.link?`<a href="${esc(meta.link)}" target="_blank" rel="noopener" class="ptime" style="color:var(--neon)" title="Link de entrega" onclick="event.stopPropagation()">🔗 entrega</a>`:""}
+          ${meta.thumb?`<a href="${esc(meta.thumb)}" target="_blank" rel="noopener" class="ptime" style="color:var(--warn)" title="Entrega de miniatura" onclick="event.stopPropagation()">🖼️ portada</a>`:""}
         </div>`:""}
         ${(p.people&&p.people.length)?`<div class="people">${p.people.map(n=>TEAM[n]?`<span class="avatar" style="background:${TEAM[n].color}" title="${n}">${TEAM[n].ini}</span>`:"").join("")}</div>`:""}`;
       cell.appendChild(el);
@@ -563,11 +568,17 @@ function fmtDate(dt){return `${dt.getFullYear()}-${String(dt.getMonth()+1).padSt
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function parseNotes(raw){
   raw=raw||"";
-  let deadline="",link="";
+  let deadline="",link="",thumb="";
   const dm=raw.match(/\[\[DEADLINE:(.*?)\]\]/); if(dm) deadline=dm[1];
   const lm=raw.match(/\[\[LINK:(.*?)\]\]/); if(lm) link=lm[1];
-  const text=raw.replace(/\[\[DEADLINE:.*?\]\]/,"").replace(/\[\[LINK:.*?\]\]/,"");
-  return {deadline,link,text};
+  const tm=raw.match(/\[\[THUMB:(.*?)\]\]/); if(tm) thumb=tm[1];
+  const text=raw.replace(/\[\[DEADLINE:.*?\]\]/,"").replace(/\[\[LINK:.*?\]\]/,"").replace(/\[\[THUMB:.*?\]\]/,"");
+  return {deadline,link,thumb,text};
+}
+function updateThumbRow(){
+  const sel=[...document.querySelectorAll("#typeGrid input:checked")].map(i=>i.value);
+  const show = sel.includes("vertical")||sel.includes("horizontal");
+  document.getElementById("thumbRow").style.display = show?"block":"none";
 }
 
 /* ---------- MODAL ---------- */
@@ -599,6 +610,7 @@ function buildPlatformOptions(){
     lab.innerHTML=`<input type="checkbox" value="${k}"><span style="font-size:15px">${info.emoji}</span>${info.name}`;
     lab.querySelector("input").addEventListener("change",e=>{
       lab.classList.toggle("sel",e.target.checked);
+      updateThumbRow();
     });
     ty.appendChild(lab);
   });
@@ -616,6 +628,7 @@ function openModal(post,presetDate){
   const parsed = parseNotes(post?post.notes:"");
   document.getElementById("fDeadline").value = post?parsed.deadline:"";
   document.getElementById("fLink").value = post?parsed.link:"";
+  document.getElementById("fThumb").value = post?parsed.thumb:"";
   document.getElementById("fNotes").value = post?parsed.text:"";
   document.querySelectorAll("#pfGrid .pf-opt").forEach(l=>{
     const on = post && post.platforms && post.platforms.includes(l.dataset.pf);
@@ -633,6 +646,7 @@ function openModal(post,presetDate){
     l.classList.toggle("sel",!!on);
     l.querySelector("input").checked=!!on;
   });
+  updateThumbRow();
   document.getElementById("delBtn").style.visibility = post?"visible":"hidden";
   document.getElementById("dupBtn").style.display = post?"inline-block":"none";
   document.getElementById("overlay").classList.add("show");
@@ -731,10 +745,13 @@ function attachEvents(){
     const ctype=[...document.querySelectorAll("#typeGrid input:checked")].map(i=>i.value).join(",");
     const deadline=document.getElementById("fDeadline").value;
     const link=document.getElementById("fLink").value.trim();
+    const thumb=document.getElementById("fThumb").value.trim();
+    const thumbApplies=ctype.split(",").some(t=>t==="vertical"||t==="horizontal");
     const freeNotes=document.getElementById("fNotes").value.trim();
     let notes="";
     if(deadline) notes+=`[[DEADLINE:${deadline}]]`;
     if(link) notes+=`[[LINK:${link}]]`;
+    if(thumb && thumbApplies) notes+=`[[THUMB:${thumb}]]`;
     notes+=freeNotes;
     const p={
       title,
