@@ -111,6 +111,8 @@
     padding:6px 8px;cursor:pointer;transition:.14s;
   }
   .post:hover{background:#23233a;transform:translateX(2px)}
+  .post.done{border-left-color:var(--neon)!important}
+  .post.done .ptitle{opacity:.75}
   .post .ptitle{font-size:13px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .post .pmeta{display:flex;align-items:center;gap:5px;margin-top:3px}
   .post .ptime{font-size:11px;color:var(--muted)}
@@ -142,6 +144,12 @@
   .pf-opt:hover{border-color:var(--accent)}
   .pf-opt.sel{border-color:var(--neon);background:rgba(0,255,200,.08)}
   .pf-opt input{display:none}
+  .deliver-box{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .deliver-check{display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;text-transform:none;letter-spacing:0;font-size:15px;color:var(--txt);font-weight:600}
+  .deliver-check input{width:20px;height:20px;accent-color:var(--neon);cursor:pointer}
+  .stamps{margin-top:10px;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  .stamps span b{color:var(--txt);font-weight:600}
+  .stamps .done-stamp b{color:var(--neon)}
   .modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
   .btn-del{background:transparent;border:1px solid var(--neon-2);color:var(--neon-2);padding:10px 16px}
   .btn-del:hover{background:var(--neon-2);color:#fff}
@@ -328,6 +336,13 @@
           <option value="publicado">✅ Publicado</option>
         </select>
       </div>
+      <div class="deliver-box">
+        <label class="deliver-check">
+          <input type="checkbox" id="fDone">
+          <span>✔️ Contenido entregado</span>
+        </label>
+        <div class="stamps" id="fStamps"></div>
+      </div>
       <div class="row">
         <div>
           <label>⏰ Deadline de entrega</label>
@@ -512,15 +527,17 @@ function render(){
       const typeEmojis = ptypes.map(t=>CONTENT_TYPES[t]?CONTENT_TYPES[t].emoji:"").join("");
       const meta = parseNotes(p.notes);
       const ddTxt = meta.deadline ? (()=>{const d=new Date(meta.deadline+"T00:00:00");return `${d.getDate()}/${d.getMonth()+1}`;})() : "";
-      el.innerHTML=`<div class="ptitle">${typeEmojis?typeEmojis+" ":""}${esc(p.title)}</div>
+      if(meta.done) el.classList.add("done");
+      el.innerHTML=`<div class="ptitle">${meta.done?"✔️ ":""}${typeEmojis?typeEmojis+" ":""}${esc(p.title)}</div>
         <div class="pmeta">
           ${p.time?`<span class="ptime">${p.time}</span>`:""}
           <span class="badge" style="background:${STATUS_COLOR[p.status]||'#7b5cff'}">${p.status||"idea"}</span>
         </div>
-        ${(ddTxt||meta.link||meta.thumb)?`<div class="pmeta" style="margin-top:2px">
+        ${(ddTxt||meta.link||meta.thumb||meta.done)?`<div class="pmeta" style="margin-top:2px">
           ${ddTxt?`<span class="ptime" title="Deadline de entrega">⏰ ${ddTxt}</span>`:""}
           ${meta.link?`<a href="${esc(meta.link)}" target="_blank" rel="noopener" class="ptime" style="color:var(--neon)" title="Link de entrega" onclick="event.stopPropagation()">🔗 entrega</a>`:""}
           ${meta.thumb?`<a href="${esc(meta.thumb)}" target="_blank" rel="noopener" class="ptime" style="color:var(--warn)" title="Entrega de miniatura" onclick="event.stopPropagation()">🖼️ portada</a>`:""}
+          ${meta.done?`<span class="ptime" style="color:var(--neon)" title="Entregada el ${esc(meta.done)}">entregada</span>`:""}
         </div>`:""}
         ${(p.people&&p.people.length)?`<div class="people">${p.people.map(n=>TEAM[n]?`<span class="avatar" style="background:${TEAM[n].color}" title="${n}">${TEAM[n].ini}</span>`:"").join("")}</div>`:""}`;
       cell.appendChild(el);
@@ -568,12 +585,34 @@ function fmtDate(dt){return `${dt.getFullYear()}-${String(dt.getMonth()+1).padSt
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function parseNotes(raw){
   raw=raw||"";
-  let deadline="",link="",thumb="";
+  let deadline="",link="",thumb="",created="",updated="",done="";
   const dm=raw.match(/\[\[DEADLINE:(.*?)\]\]/); if(dm) deadline=dm[1];
   const lm=raw.match(/\[\[LINK:(.*?)\]\]/); if(lm) link=lm[1];
   const tm=raw.match(/\[\[THUMB:(.*?)\]\]/); if(tm) thumb=tm[1];
-  const text=raw.replace(/\[\[DEADLINE:.*?\]\]/,"").replace(/\[\[LINK:.*?\]\]/,"").replace(/\[\[THUMB:.*?\]\]/,"");
-  return {deadline,link,thumb,text};
+  const cm=raw.match(/\[\[CREATED:(.*?)\]\]/); if(cm) created=cm[1];
+  const um=raw.match(/\[\[UPDATED:(.*?)\]\]/); if(um) updated=um[1];
+  const nm=raw.match(/\[\[DONE:(.*?)\]\]/); if(nm) done=nm[1];
+  const text=raw.replace(/\[\[DEADLINE:.*?\]\]/,"").replace(/\[\[LINK:.*?\]\]/,"").replace(/\[\[THUMB:.*?\]\]/,"")
+    .replace(/\[\[CREATED:.*?\]\]/,"").replace(/\[\[UPDATED:.*?\]\]/,"").replace(/\[\[DONE:.*?\]\]/,"");
+  return {deadline,link,thumb,created,updated,done,text};
+}
+function nowStamp(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,"0");
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+// Reconstruye las notas de un post refrescando CREATED/UPDATED (para cambios rápidos como arrastrar)
+function touchNotes(raw){
+  const m=parseNotes(raw);
+  const stamp=nowStamp();
+  let n="";
+  if(m.deadline) n+=`[[DEADLINE:${m.deadline}]]`;
+  if(m.link) n+=`[[LINK:${m.link}]]`;
+  if(m.thumb) n+=`[[THUMB:${m.thumb}]]`;
+  n+=`[[CREATED:${m.created||stamp}]][[UPDATED:${stamp}]]`;
+  if(m.done) n+=`[[DONE:${m.done}]]`;
+  n+=m.text;
+  return n;
 }
 function updateThumbRow(){
   const sel=[...document.querySelectorAll("#typeGrid input:checked")].map(i=>i.value);
@@ -630,6 +669,16 @@ function openModal(post,presetDate){
   document.getElementById("fLink").value = post?parsed.link:"";
   document.getElementById("fThumb").value = post?parsed.thumb:"";
   document.getElementById("fNotes").value = post?parsed.text:"";
+  document.getElementById("fDone").checked = post ? !!parsed.done : false;
+  // Timestamps
+  const st=document.getElementById("fStamps");
+  if(post){
+    let html="";
+    if(parsed.created) html+=`<span>🕒 Registrada: <b>${esc(parsed.created)}</b></span>`;
+    if(parsed.updated) html+=`<span>🔄 Última actualización: <b>${esc(parsed.updated)}</b></span>`;
+    if(parsed.done) html+=`<span class="done-stamp">✔️ Entregada: <b>${esc(parsed.done)}</b></span>`;
+    st.innerHTML=html;
+  } else st.innerHTML="";
   document.querySelectorAll("#pfGrid .pf-opt").forEach(l=>{
     const on = post && post.platforms && post.platforms.includes(l.dataset.pf);
     l.classList.toggle("sel",!!on);
@@ -723,7 +772,7 @@ function attachEvents(){
     const p=posts.find(x=>String(x.id)===String(id));
     document.querySelectorAll(".cell.drop-active").forEach(x=>x.classList.remove("drop-active"));
     panel.classList.remove("dragging-away");
-    if(p && p.date!==newDate){ p.date=newDate; await savePost({...p}); }
+    if(p && p.date!==newDate){ p.date=newDate; p.notes=touchNotes(p.notes); await savePost({...p}); }
     if(cameFromIdeas){ panel.classList.add("show"); ideasOv.classList.add("show"); }
   });
   // Soltar en el panel de ideas -> quitar fecha (aparcar)
@@ -734,7 +783,7 @@ function attachEvents(){
     if(!dragId)return;
     const id=dragId;
     const p=posts.find(x=>String(x.id)===String(id));
-    if(p && p.date){ p.date=""; await savePost({...p}); }
+    if(p && p.date){ p.date=""; p.notes=touchNotes(p.notes); await savePost({...p}); }
   });
 
   document.getElementById("saveBtn").onclick=async()=>{
@@ -748,10 +797,20 @@ function attachEvents(){
     const thumb=document.getElementById("fThumb").value.trim();
     const thumbApplies=ctype.split(",").some(t=>t==="vertical"||t==="horizontal");
     const freeNotes=document.getElementById("fNotes").value.trim();
+    const done=document.getElementById("fDone").checked;
+    // Timestamps: conserva los previos del post que se edita
+    const prev = editingId ? parseNotes((posts.find(x=>String(x.id)===String(editingId))||{}).notes) : {};
+    const stamp=nowStamp();
+    const created = prev.created || stamp;
+    const updated = stamp;
+    let doneStamp="";
+    if(done) doneStamp = prev.done || stamp;
     let notes="";
     if(deadline) notes+=`[[DEADLINE:${deadline}]]`;
     if(link) notes+=`[[LINK:${link}]]`;
     if(thumb && thumbApplies) notes+=`[[THUMB:${thumb}]]`;
+    notes+=`[[CREATED:${created}]][[UPDATED:${updated}]]`;
+    if(doneStamp) notes+=`[[DONE:${doneStamp}]]`;
     notes+=freeNotes;
     const p={
       title,
