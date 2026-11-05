@@ -114,7 +114,11 @@
     background:var(--panel-2);border-left:3px solid var(--accent);border-radius:7px;
     padding:6px 8px;cursor:pointer;transition:.14s;
   }
-  .post:hover{background:#23233a;transform:translateX(2px)}
+  .post:hover{filter:brightness(1.12);transform:translateX(2px)}
+  /* Color de la tarjeta según estado */
+  .post.st-idea{background:rgba(255,184,0,.14);border-left-color:var(--warn)}
+  .post.st-programado{background:rgba(0,255,200,.13);border-left-color:var(--neon)}
+  .post.st-publicado{background:rgba(0,255,200,.13);border-left-color:var(--neon)}
   .post.done{border-left-color:var(--neon)!important}
   .post.done .ptitle{opacity:.75}
   .vaca-day{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 4px}
@@ -430,7 +434,7 @@ const SUPABASE_URL = "https://xiuaizzopwlzqaxcbruy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ZFLqaJrX-Z7bt7NzBDwscg_yG3w4sBH";
 /* Webhook de Slack (opcional): pega aquí la URL del Incoming Webhook.
    Déjalo vacío para desactivar los avisos. */
-const SLACK_WEBHOOK = "https://hooks.slack.com/services/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";
+const SLACK_WEBHOOK = "";
 /* ============================================================ */
 
 const PLATFORMS = {
@@ -637,7 +641,6 @@ function render(){
       const pf=(p.platforms&&p.platforms[0])?PLATFORMS[p.platforms[0]]:null;
       const el=document.createElement("div");
       el.className="post";
-      el.style.borderLeftColor=pf?pf.color:"var(--accent)";
       el.dataset.id=p.id;
       el.draggable=true;
       const ptypes = p.ctype ? p.ctype.split(",").filter(Boolean) : [];
@@ -645,10 +648,10 @@ function render(){
       const meta = parseNotes(p.notes);
       const ddTxt = meta.deadline ? (()=>{const d=new Date(meta.deadline+"T00:00:00");return `${d.getDate()}/${d.getMonth()+1}`;})() : "";
       if(meta.done) el.classList.add("done");
+      el.classList.add("st-"+(p.status||"idea"));
       el.innerHTML=`<div class="ptitle">${meta.done?"✔️ ":""}${typeEmojis?typeEmojis+" ":""}${esc(p.title)}</div>
         <div class="pmeta">
           ${p.time?`<span class="ptime">${p.time}</span>`:""}
-          <span class="badge" style="background:${STATUS_COLOR[p.status]||'#7b5cff'}">${p.status||"idea"}</span>
         </div>
         ${(ddTxt||meta.link||meta.thumb||meta.done)?`<div class="pmeta" style="margin-top:2px">
           ${ddTxt?`<span class="ptime" title="Deadline de entrega">⏰ ${ddTxt}</span>`:""}
