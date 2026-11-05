@@ -59,6 +59,10 @@
   .brand p{color:var(--muted);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-top:4px}
 
   .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .view-switch{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+  .view-opt{padding:8px 14px;background:transparent;color:var(--muted);border-radius:9px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .view-opt.active{background:var(--accent);color:#fff}
+  .view-opt:not(.active):hover{color:var(--txt)}
   .month-nav{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
   .month-label{font-family:'Chakra Petch';font-weight:600;font-size:16px;min-width:170px;text-align:center;text-transform:uppercase;letter-spacing:1px}
   button{
@@ -246,6 +250,10 @@
       </div>
     </div>
     <div class="controls">
+      <div class="view-switch">
+        <button class="view-opt active" id="viewPub" data-view="pub">📆 Publicación</button>
+        <button class="view-opt" id="viewDead" data-view="dead">⏰ Deadlines</button>
+      </div>
       <button class="btn btn-today" id="todayBtn">Hoy</button>
       <div class="month-nav">
         <button class="nav-btn" id="prevBtn">‹</button>
@@ -464,7 +472,7 @@ const MINIMUMS = [
    note:"Sin contar coberturas de partidos. Ojo a tendencias o virales en la comunidad esports España/Europa"}
 ];
 
-let supa = null, useCloud = false, posts = [], current = new Date(), editingId = null;
+let supa = null, useCloud = false, posts = [], current = new Date(), editingId = null, viewMode = "pub";
 
 /* ---------- VACACIONES (guardadas como posts internos __VACA__) ---------- */
 const VACA_TAG="__VACA__";
@@ -479,6 +487,18 @@ function vacaInfo(p){
 function vacaList(){ return posts.filter(isVaca).map(p=>({id:p.id,...vacaInfo(p)})); }
 function vacaOnDate(dateStr){
   return vacaList().filter(v=> dateStr>=v.from && dateStr<=v.to ).map(v=>v.person);
+}
+// Fecha que posiciona el post en la vista actual: publicación (p.date) o deadline (notas)
+function viewDate(p){
+  if(viewMode==="dead") return parseNotes(p.notes).deadline || "";
+  return p.date || "";
+}
+function setView(mode){
+  viewMode=mode;
+  document.getElementById("viewPub").classList.toggle("active",mode==="pub");
+  document.getElementById("viewDead").classList.toggle("active",mode==="dead");
+  document.body.classList.toggle("dead-view",mode==="dead");
+  render();
 }
 
 /* ---------- INIT ---------- */
@@ -571,7 +591,7 @@ function render(){
     const dateStr=fmtDate(day);
     const cell=document.createElement("div");
     cell.className="cell"+(dateStr===todayStr?" today":"");
-    const dayPosts=posts.filter(p=>!isVaca(p)&&p.date===dateStr).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+    const dayPosts=posts.filter(p=>!isVaca(p)&&viewDate(p)===dateStr).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
     const onVaca=vacaOnDate(dateStr);
     cell.innerHTML=`<div class="num"><span>${DOW[i]} ${day.getDate()}</span><button class="add-day" data-date="${dateStr}">+</button></div>`
       + (onVaca.length?`<div class="vaca-day">${onVaca.map(n=>`<span class="vaca-tag" title="De vacaciones">⛔️ ${esc(n)}</span>`).join("")}</div>`:"");
@@ -673,6 +693,19 @@ function touchNotes(raw){
   n+=m.text;
   return n;
 }
+// Fija/actualiza el deadline en las notas (conservando el resto), refrescando UPDATED
+function setDeadline(raw,newDeadline){
+  const m=parseNotes(raw);
+  const stamp=nowStamp();
+  let n="";
+  if(newDeadline) n+=`[[DEADLINE:${newDeadline}]]`;
+  if(m.link) n+=`[[LINK:${m.link}]]`;
+  if(m.thumb) n+=`[[THUMB:${m.thumb}]]`;
+  n+=`[[CREATED:${m.created||stamp}]][[UPDATED:${stamp}]]`;
+  if(m.done) n+=`[[DONE:${m.done}]]`;
+  n+=m.text;
+  return n;
+}
 function updateThumbRow(){
   const sel=[...document.querySelectorAll("#typeGrid input:checked")].map(i=>i.value);
   const show = sel.includes("vertical")||sel.includes("horizontal")||sel.includes("clip_horizontal");
@@ -717,14 +750,16 @@ function buildPlatformOptions(){
 function openModal(post,presetDate){
   editingId = post?post.id:null;
   const isIdea = presetDate==="__idea__";
+  const isDeadlinePreset = typeof presetDate==="string" && presetDate.startsWith("__deadline__");
+  const deadlinePreset = isDeadlinePreset ? presetDate.replace("__deadline__","") : "";
   document.getElementById("modalTitle").textContent = post?"Editar Post":(isIdea?"Nueva Idea":"Nuevo Post");
   document.getElementById("postId").value = post?post.id:"";
   document.getElementById("fTitle").value = post?post.title:"";
-  document.getElementById("fDate").value = post?post.date:(isIdea?"":(presetDate||fmtDate(new Date())));
+  document.getElementById("fDate").value = post?post.date:((isIdea||isDeadlinePreset)?"":(presetDate||fmtDate(new Date())));
   document.getElementById("fTime").value = post?(post.time||""):"";
   document.getElementById("fStatus").value = post?(post.status||"idea"):"idea";
   const parsed = parseNotes(post?post.notes:"");
-  document.getElementById("fDeadline").value = post?parsed.deadline:"";
+  document.getElementById("fDeadline").value = post?parsed.deadline:deadlinePreset;
   document.getElementById("fLink").value = post?parsed.link:"";
   document.getElementById("fThumb").value = post?parsed.thumb:"";
   document.getElementById("fNotes").value = post?parsed.text:"";
@@ -766,13 +801,15 @@ function attachEvents(){
   document.getElementById("prevBtn").onclick=()=>{current.setDate(current.getDate()-7);render();};
   document.getElementById("nextBtn").onclick=()=>{current.setDate(current.getDate()+7);render();};
   document.getElementById("todayBtn").onclick=()=>{current=new Date();render();};
+  document.getElementById("viewPub").onclick=()=>setView("pub");
+  document.getElementById("viewDead").onclick=()=>setView("dead");
   document.getElementById("newBtn").onclick=()=>openModal(null);
   document.getElementById("closeBtn").onclick=closeModal;
   document.getElementById("overlay").onclick=e=>{if(e.target.id==="overlay")closeModal();};
 
   document.getElementById("calGrid").addEventListener("click",e=>{
     const add=e.target.closest(".add-day");
-    if(add){openModal(null,add.dataset.date);return;}
+    if(add){ openModal(null, viewMode==="dead"?"__deadline__"+add.dataset.date:add.dataset.date); return; }
     const post=e.target.closest(".post");
     if(post){const p=posts.find(x=>String(x.id)===String(post.dataset.id));if(p)openModal(p);}
   });
@@ -831,7 +868,15 @@ function attachEvents(){
     const p=posts.find(x=>String(x.id)===String(id));
     document.querySelectorAll(".cell.drop-active").forEach(x=>x.classList.remove("drop-active"));
     panel.classList.remove("dragging-away");
-    if(p && p.date!==newDate){ p.date=newDate; p.notes=touchNotes(p.notes); await savePost({...p}); }
+    if(p){
+      if(viewMode==="dead"){
+        // Arrastrar en vista deadline cambia la fecha de deadline
+        const cur=parseNotes(p.notes).deadline;
+        if(cur!==newDate){ p.notes=setDeadline(p.notes,newDate); await savePost({...p}); }
+      }else{
+        if(p.date!==newDate){ p.date=newDate; p.notes=touchNotes(p.notes); await savePost({...p}); }
+      }
+    }
     if(cameFromIdeas){ panel.classList.add("show"); ideasOv.classList.add("show"); }
   });
   // Soltar en el panel de ideas -> quitar fecha (aparcar)
