@@ -112,7 +112,7 @@
 
   .post{
     background:var(--panel-2);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:7px;
-    padding:6px 8px;cursor:pointer;transition:.14s;
+    padding:6px 8px;cursor:pointer;transition:.14s;overflow:hidden;
   }
   .post:hover{filter:brightness(1.12);transform:translateX(2px)}
   /* Color de la tarjeta según estado */
@@ -133,8 +133,9 @@
   .vaca-item .vdel:hover{background:var(--neon-2);color:#fff}
   .vaca-empty{color:var(--muted);font-size:13px;text-align:center;padding:14px}
   .post .ptitle{font-size:13px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .post .pmeta{display:flex;align-items:center;gap:5px;margin-top:3px}
-  .post .ptime{font-size:11px;color:var(--muted)}
+  .post .pmeta{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:3px}
+  .post .ptime{font-size:11px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .post .chip{display:inline-block;max-width:100%}
   .badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;color:#0a0a0f}
   .people{display:flex;align-items:center;gap:-4px;margin-top:4px}
   .avatar{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-family:'Chakra Petch';font-weight:700;font-size:8px;color:#0a0a0f;border:1.5px solid var(--panel-2);margin-right:-5px}
