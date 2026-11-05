@@ -111,14 +111,16 @@
   .add-day:hover{background:var(--neon);color:#0a0a0f}
 
   .post{
-    background:var(--panel-2);border-left:3px solid var(--accent);border-radius:7px;
+    background:var(--panel-2);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:7px;
     padding:6px 8px;cursor:pointer;transition:.14s;
   }
   .post:hover{filter:brightness(1.12);transform:translateX(2px)}
   /* Color de la tarjeta según estado */
-  .post.st-idea{background:rgba(255,184,0,.14);border-left-color:var(--warn)}
-  .post.st-programado{background:rgba(0,255,200,.13);border-left-color:var(--neon)}
-  .post.st-publicado{background:rgba(0,255,200,.13);border-left-color:var(--neon)}
+  .post.st-idea{background:rgba(255,184,0,.32);border:1px solid rgba(255,184,0,.6);border-left:5px solid var(--warn)}
+  .post.st-idea .ptime{color:rgba(255,255,255,.75)}
+  .post.st-programado,.post.st-publicado{background:rgba(0,255,200,.28);border:1px solid rgba(0,255,200,.55);border-left:5px solid var(--neon)}
+  .post.st-programado .ptime,.post.st-publicado .ptime{color:rgba(255,255,255,.8)}
+  .post .chip{background:rgba(10,10,15,.6);padding:1px 6px;border-radius:5px;font-weight:600}
   .post.done{border-left-color:var(--neon)!important}
   .post.done .ptitle{opacity:.75}
   .vaca-day{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 4px}
@@ -655,9 +657,9 @@ function render(){
         </div>
         ${(ddTxt||meta.link||meta.thumb||meta.done)?`<div class="pmeta" style="margin-top:2px">
           ${ddTxt?`<span class="ptime" title="Deadline de entrega">⏰ ${ddTxt}</span>`:""}
-          ${meta.link?`<a href="${esc(meta.link)}" target="_blank" rel="noopener" class="ptime" style="color:var(--neon)" title="Link de entrega" onclick="event.stopPropagation()">🔗 entrega</a>`:""}
-          ${meta.thumb?`<a href="${esc(meta.thumb)}" target="_blank" rel="noopener" class="ptime" style="color:var(--warn)" title="Entrega de miniatura" onclick="event.stopPropagation()">🖼️ portada</a>`:""}
-          ${meta.done?`<span class="ptime" style="color:var(--neon)" title="Entregada el ${esc(meta.done)}">entregada</span>`:""}
+          ${meta.link?`<a href="${esc(meta.link)}" target="_blank" rel="noopener" class="ptime chip" style="color:var(--neon)" title="Link de entrega" onclick="event.stopPropagation()">🔗 entrega</a>`:""}
+          ${meta.thumb?`<a href="${esc(meta.thumb)}" target="_blank" rel="noopener" class="ptime chip" style="color:var(--warn)" title="Entrega de miniatura" onclick="event.stopPropagation()">🖼️ portada</a>`:""}
+          ${meta.done?`<span class="ptime chip" style="color:var(--neon)" title="Entregada el ${esc(meta.done)}">✔️ entregada</span>`:""}
         </div>`:""}
         ${(p.people&&p.people.length)?`<div class="people">${p.people.map(n=>TEAM[n]?`<span class="avatar" style="background:${TEAM[n].color}" title="${n}">${TEAM[n].ini}</span>`:"").join("")}</div>`:""}`;
       cell.appendChild(el);
