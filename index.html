@@ -428,6 +428,9 @@
    ============================================================ */
 const SUPABASE_URL = "https://xiuaizzopwlzqaxcbruy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ZFLqaJrX-Z7bt7NzBDwscg_yG3w4sBH";
+/* Webhook de Slack (opcional): pega aquí la URL del Incoming Webhook.
+   Déjalo vacío para desactivar los avisos. */
+const SLACK_WEBHOOK = "";
 /* ============================================================ */
 
 const PLATFORMS = {
@@ -537,6 +540,41 @@ async function loadPosts(){
 }
 
 function saveLocal(){ localStorage.setItem("rbls_posts", JSON.stringify(posts)); }
+
+async function notifySlack(p){
+  if(!SLACK_WEBHOOK) return;
+  if(isVaca(p)) return; // no avisar de registros de vacaciones
+  try{
+    const meta=parseNotes(p.notes);
+    const plats=(p.platforms||[]).map(k=>PLATFORMS[k]?PLATFORMS[k].name:k).join(", ")||"—";
+    const types=(p.ctype?p.ctype.split(",").filter(Boolean):[]).map(t=>CONTENT_TYPES[t]?`${CONTENT_TYPES[t].emoji} ${CONTENT_TYPES[t].name}`:t).join(", ")||"—";
+    const people=(p.people||[]).join(", ")||"—";
+    const fmtD=s=>{ if(!s) return ""; const d=new Date(s+"T00:00:00"); return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; };
+    const fields=[
+      {type:"mrkdwn",text:`*📅 Publicación:*\n${fmtD(p.date)||"Sin fecha"}${p.time?` · ${p.time}`:""}`},
+      {type:"mrkdwn",text:`*⏰ Deadline:*\n${fmtD(meta.deadline)||"—"}`},
+      {type:"mrkdwn",text:`*👥 Dirigido a:*\n${people}`},
+      {type:"mrkdwn",text:`*📣 Plataformas:*\n${plats}`},
+      {type:"mrkdwn",text:`*🎬 Tipo:*\n${types}`},
+      {type:"mrkdwn",text:`*🏷️ Estado:*\n${p.status||"idea"}`}
+    ];
+    const blocks=[
+      {type:"header",text:{type:"plain_text",text:`🆕 Nuevo contenido: ${p.title}`.slice(0,150),emoji:true}},
+      {type:"section",fields}
+    ];
+    const extras=[];
+    if(meta.link) extras.push(`<${meta.link}|🔗 Link de entrega>`);
+    if(meta.thumb) extras.push(`<${meta.thumb}|🖼️ Miniatura>`);
+    if(extras.length) blocks.push({type:"section",text:{type:"mrkdwn",text:extras.join("   ")}});
+    if(meta.text) blocks.push({type:"context",elements:[{type:"mrkdwn",text:`📝 ${meta.text.slice(0,300)}`}]});
+    blocks.push({type:"context",elements:[{type:"mrkdwn",text:"RBLS Gaming · Calendario de Contenido"}]});
+
+    await fetch(SLACK_WEBHOOK,{
+      method:"POST",
+      body:JSON.stringify({text:`🆕 Nuevo contenido: ${p.title}`,blocks})
+    });
+  }catch(err){ console.warn("Slack no disponible:",err); }
+}
 
 async function savePost(p){
   if(useCloud){
@@ -926,8 +964,10 @@ function attachEvents(){
       status:document.getElementById("fStatus").value,
       notes
     };
+    const esNuevo = !editingId;
     if(editingId) p.id=editingId;
     await savePost(p);
+    if(esNuevo) notifySlack(p);
     closeModal();
   };
 
