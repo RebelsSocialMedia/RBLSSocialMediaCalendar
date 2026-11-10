@@ -104,7 +104,9 @@
   .cell:hover{border-color:var(--accent);background:var(--panel-2)}
   .cell.empty{background:transparent;border-color:transparent}
   .cell.today{border-color:var(--today);box-shadow:0 0 0 1px var(--today) inset, 0 0 22px rgba(0,255,200,.18)}
-  .cell .num{font-family:'Chakra Petch';font-weight:600;font-size:14px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:inherit;padding-bottom:4px;border-bottom:1px solid var(--line)}
+  .cell .num{font-family:'Chakra Petch';font-weight:600;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:inherit;padding-bottom:4px;border-bottom:1px solid var(--line)}
+  .cell .num .num-day{white-space:nowrap}
+  .cell .num .add-day{margin-left:auto}
   .cell.today .num{color:var(--today)}
   .add-day{opacity:0;background:var(--panel-2);border:1px solid var(--line);color:var(--neon);width:22px;height:22px;border-radius:6px;font-size:15px;line-height:1;transition:.16s}
   .cell:hover .add-day{opacity:1}
@@ -125,7 +127,7 @@
   .post .chip{background:rgba(10,10,15,.6);padding:1px 6px;border-radius:5px;font-weight:600}
   .post.done{border-left-color:var(--neon)!important}
   .post.done .ptitle{opacity:.75}
-  .vaca-day{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 4px}
+  .vaca-day{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
   .vaca-tag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:rgba(255,15,38,.14);color:#ff6b7f;text-transform:uppercase;letter-spacing:.3px}
   .vaca-list{display:flex;flex-direction:column;gap:7px;margin-top:4px;max-height:180px;overflow-y:auto}
   .vaca-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 11px}
@@ -640,8 +642,9 @@ function render(){
     cell.className="cell"+(dateStr===todayStr?" today":"");
     const dayPosts=posts.filter(p=>!isVaca(p)&&viewDate(p)===dateStr).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
     const onVaca=vacaOnDate(dateStr);
-    cell.innerHTML=`<div class="num"><span>${DOW[i]} ${day.getDate()}</span><button class="add-day" data-date="${dateStr}">+</button></div>`
-      + (onVaca.length?`<div class="vaca-day">${onVaca.map(n=>`<span class="vaca-tag" title="De vacaciones">⛔️ ${esc(n)}</span>`).join("")}</div>`:"");
+    cell.innerHTML=`<div class="num"><span class="num-day">${DOW[i]} ${day.getDate()}</span>`
+      + (onVaca.length?`<span class="vaca-day">${onVaca.map(n=>`<span class="vaca-tag" title="De vacaciones">⛔️ ${esc(n)}</span>`).join("")}</span>`:"")
+      + `<button class="add-day" data-date="${dateStr}">+</button></div>`;
     dayPosts.forEach(p=>{
       const pf=(p.platforms&&p.platforms[0])?PLATFORMS[p.platforms[0]]:null;
       const el=document.createElement("div");
